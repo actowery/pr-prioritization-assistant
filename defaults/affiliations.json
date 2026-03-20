@@ -1,6 +1,34 @@
 {
   "internal_staff": ["maintainer_user_1", "release_manager_1"],
   "customer_success": ["support_user_1"],
-  "top_community_contributors": ["external_contributor_1", "community_helper_1"],
-  "tier_1_customers": ["government_user_1", "bigboxstore_user_1"]
+  "top_community_contributors": [
+    "community_helper_1",
+    "community_helper_2",
+    "community_helper_3",
+    "community_helper_4",
+    "community_helper_5",
+    "community_helper_6"
+  ],
+  "top_module_contributors": [
+    "module_contributor_1",
+    "module_contributor_2",
+    "module_contributor_3",
+    "module_contributor_4",
+    "module_contributor_5",
+    "module_contributor_6",
+    "module_contributor_7",
+    "module_contributor_8",
+    "module_contributor_9",
+    "module_contributor_10"
+  ],
+  "vip_orgs": [
+    "vip_org_1",
+    "vip_org_2",
+    "vip_org_3",
+    "vip_org_4",
+    "vip_org_5",
+    "vip_org_6",
+    "vip_org_7"
+  ],
+  "public_institution_adjacent": ["public_sector_user_1"]
 }

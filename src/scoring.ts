@@ -120,7 +120,7 @@ function computeBusinessRelevance(pr: RawPullRequestAnalysis, config: ConfigBund
   let score = 1;
   score += Math.min(4, pr.businessSignals.length * 2);
   score += Math.min(2, pr.urgencySignals.length);
-  score += pr.affiliation ? 1 : 0;
+  score += computeAffiliationPriorityBoost(pr);
   score += hasConfiguredLabel(pr, config.labelRules.businessLabels) ? 2 : 0;
   score += (config.repoWeights[pr.repo] ?? 1) > 1 ? 1 : 0;
   score += hasCompatibilityOrPlatformSignal(pr) ? 2 : 0;
@@ -186,6 +186,15 @@ function computeCommunityValue(pr: RawPullRequestAnalysis): number {
   let score = 0;
   if (isBotPr(pr)) {
     return 0;
+  }
+  if (hasAffiliationCategory(pr, "vip_orgs")) {
+    score += 2.5;
+  } else if (hasAffiliationCategory(pr, "top_module_contributors")) {
+    score += 1.75;
+  } else if (hasAffiliationCategory(pr, "top_community_contributors")) {
+    score += 1.25;
+  } else if (pr.affiliation) {
+    score += 0.5;
   }
   if (pr.authorAssociation && ["NONE", "FIRST_TIMER", "FIRST_TIME_CONTRIBUTOR", "CONTRIBUTOR"].includes(pr.authorAssociation)) {
     score += 2;
@@ -368,6 +377,13 @@ function buildExplanation(
   if (businessRelevanceScore >= 7) {
     lines.push("High business relevance from labels, repo weighting, or stakeholder-language signals.");
   }
+  if (hasAffiliationCategory(pr, "vip_orgs")) {
+    lines.push("Author maps to a VIP org affiliation, which is weighted strongly in prioritization.");
+  } else if (hasAffiliationCategory(pr, "top_module_contributors")) {
+    lines.push("Author is mapped as a top module contributor across the configured repo set.");
+  } else if (hasAffiliationCategory(pr, "top_community_contributors")) {
+    lines.push("Author is mapped as a top community contributor.");
+  }
   if (pr.ownershipMatch === "requested-team" || pr.ownershipMatch === "requested-team+codeowners-path") {
     lines.push("The requested CODEOWNERS team is directly assigned to review this PR.");
   } else if (
@@ -458,6 +474,45 @@ function isRoutineMaintenancePr(pr: RawPullRequestAnalysis, config: ConfigBundle
     hasConfiguredLabel(pr, config.labelRules.maintenanceLabels) ||
     isBotPr(pr)
   );
+}
+
+function computeAffiliationPriorityBoost(pr: RawPullRequestAnalysis): number {
+  if (!pr.affiliation) {
+    return 0;
+  }
+
+  if (hasAffiliationCategory(pr, "vip_orgs")) {
+    return 3;
+  }
+
+  if (hasAffiliationCategory(pr, "top_module_contributors")) {
+    return 2;
+  }
+
+  if (hasAffiliationCategory(pr, "top_community_contributors")) {
+    return 1.5;
+  }
+
+  if (hasAffiliationCategory(pr, "customer_success")) {
+    return 1.25;
+  }
+
+  if (hasAffiliationCategory(pr, "internal_staff")) {
+    return 1;
+  }
+
+  return 0.5;
+}
+
+function hasAffiliationCategory(pr: RawPullRequestAnalysis, category: string): boolean {
+  if (!pr.affiliation) {
+    return false;
+  }
+
+  return pr.affiliation
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .includes(category.toLowerCase());
 }
 
 function hasCompatibilityOrPlatformSignal(pr: RawPullRequestAnalysis): boolean {

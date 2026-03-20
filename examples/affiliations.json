@@ -2,5 +2,5 @@
   "internal_staff": ["maintainer_user_1", "release_manager_1"],
   "customer_success": ["support_user_1"],
   "top_community_contributors": ["external_contributor_1", "community_helper_1"],
-  "tier_1_customers": "government_user_1, bigboxstore_user_1"
+  "vip_orgs": ["examplegov", "examplebigbox", "example-enterprise"]
 }

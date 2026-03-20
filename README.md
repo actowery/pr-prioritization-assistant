@@ -326,7 +326,7 @@ Category-grouped map:
 ```json
 {
   "top_community_contributors": ["foo", "bar", "baz"],
-  "tier_1_customers": "government_user_1, bigboxstore_user_1",
+  "vip_orgs": "vip_org_1, vip_org_2, vip_org_3",
   "internal_staff": ["maintainer_user_1", "release_manager_1"]
 }
 ```

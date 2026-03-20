@@ -31,13 +31,13 @@ test("normalizeAffiliationMap supports category keys with array values", () => {
 
 test("normalizeAffiliationMap supports comma separated grouped values and multiple categories per user", () => {
   const normalized = normalizeAffiliationMap({
-    tier_1_customers: "government, bigboxstore",
+    vip_orgs: "government, bigboxstore",
     top_community_contributors: "bigboxstore, helpfulhuman",
   });
 
   assert.deepEqual(normalized, {
-    government: "tier_1_customers",
-    bigboxstore: "tier_1_customers, top_community_contributors",
+    government: "vip_orgs",
+    bigboxstore: "vip_orgs, top_community_contributors",
     helpfulhuman: "top_community_contributors",
   });
 });

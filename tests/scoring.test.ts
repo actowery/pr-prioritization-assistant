@@ -83,6 +83,32 @@ test("compatibility PRs can surface as quick wins", () => {
   assert.ok(scored.finalScore >= DEFAULT_CONFIG.codeJamThresholds.quickWinMinScore);
 });
 
+test("vip org affiliations outrank general contributor affiliations", () => {
+  const vip = scorePullRequest(
+    makeBasePr({
+      affiliation: "vip_orgs",
+      businessSignals: [],
+      dependencySignals: [],
+      urgencySignals: [],
+      labels: [],
+    }),
+    DEFAULT_CONFIG,
+  );
+  const topContributor = scorePullRequest(
+    makeBasePr({
+      affiliation: "top_module_contributors",
+      businessSignals: [],
+      dependencySignals: [],
+      urgencySignals: [],
+      labels: [],
+    }),
+    DEFAULT_CONFIG,
+  );
+
+  assert.ok(vip.businessRelevanceScore > topContributor.businessRelevanceScore);
+  assert.ok(vip.communityValueScore > topContributor.communityValueScore);
+});
+
 test("routine maintenance PRs are deprioritized", () => {
   const scored = scorePullRequest(
     makeBasePr({
