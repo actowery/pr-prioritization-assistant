@@ -1,0 +1,99 @@
+# AI Context
+
+This repository is a cross-platform CLI for prioritizing GitHub pull requests across a provided repository list or a CODEOWNERS-discovered repo set.
+
+## Project Shape
+
+- Language: TypeScript on Node.js 22+
+- Entry points:
+  - `src/index.ts` is the thin executable entry
+  - `src/cli.ts` contains most CLI behavior
+- Major modules:
+  - `src/auth.ts`
+  - `src/config.ts`
+  - `src/github/client.ts`
+  - `src/github/codeowners.ts`
+  - `src/scoring.ts`
+  - `src/reporting/reporters.ts`
+- CLI wrappers:
+  - `prioritize-prs`
+  - `prioritize-prs.cmd`
+
+## Commands
+
+- Build: `npm run build`
+- Typecheck: `npm run typecheck`
+- Test build: `npm run test:build`
+- Test: `npm test`
+- Dev run: `npm run scan:dev`
+- Built run: `npm run scan`
+
+## Important Behavior
+
+- The tool is advisory, not autonomous.
+- It must not merge PRs or comment on PRs.
+- It supports direct repo input and CODEOWNERS-based repo discovery.
+- It supports ownership narrowing via:
+  - `assigned`
+  - `touched`
+  - `either`
+  - `both`
+- It supports Markdown, JSON, and CSV output.
+
+## Public Repo Guidance
+
+- Keep public wording generic.
+- Do not describe this as tied to any internal classification system.
+- Do not ship customer-specific, employer-specific, or organization-specific defaults.
+- Keep checked-in examples fictional.
+
+## Default Data Guardrail
+
+Files under `defaults/` and `examples/` are public starter templates.
+
+Important:
+
+- If you see real repo lists, real usernames, real org mappings, or other test values in those files, treat them as local testing data unless the user explicitly says to publish them.
+- Do not push non-default real values from:
+  - `defaults/repos.csv`
+  - `defaults/repos.txt`
+  - `defaults/affiliations.json`
+  - other starter config files under `defaults/` or `examples/`
+
+## Testing Expectations
+
+Before shipping code changes, prefer to run:
+
+```bash
+npm run build
+npm run test:build
+npm test
+```
+
+For packaging validation:
+
+```bash
+npm pack --dry-run
+```
+
+## Git Notes
+
+- The canonical branch is `main`.
+- Public repo: `https://github.com/actowery/pr-prioritization-assistant`
+- Be careful not to commit local test data in starter files.
+
+## Documentation
+
+Primary docs:
+
+- `README.md`
+- `QUICKSTART.md`
+- `TESTING.md`
+
+When behavior changes, update docs if the change affects:
+
+- CLI flags
+- default behavior
+- report outputs
+- testing flow
+- packaging or release expectations
