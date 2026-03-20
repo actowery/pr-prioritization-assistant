@@ -1,6 +1,6 @@
 # PR Prioritization Assistant
 
-CLI tool that scans a provided T1 repository list, analyzes open GitHub pull requests, and emits an explainable recommendation order for human review.
+CLI tool that scans a provided repository list, analyzes open GitHub pull requests, and emits an explainable recommendation order for human review.
 
 The assistant is intentionally advisory:
 

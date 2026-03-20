@@ -1,7 +1,7 @@
 {
   "name": "pr-prioritization-assistant",
   "version": "1.0.0",
-  "description": "CLI assistant that ranks GitHub pull requests across a provided T1 repository set.",
+  "description": "CLI assistant that ranks GitHub pull requests across a provided repository set.",
   "type": "module",
   "files": [
     "dist",
