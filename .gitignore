@@ -15,3 +15,6 @@ out-smoke/
 /low_hanging_thresholds.json
 /label_rules.json
 /code_jam_thresholds.json
+/repos.test.csv
+/affiliations.test.json
+/LOCAL_TESTING.md
