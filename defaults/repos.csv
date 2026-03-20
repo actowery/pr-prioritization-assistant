@@ -1,11 +1,11 @@
 repo,owner,name,url
-# owner-example/priority-sdk,owner-example,priority-sdk,https://example.invalid/owner-example/priority-sdk
-# owner-example/ops-tooling,owner-example,ops-tooling,https://example.invalid/owner-example/ops-tooling
-# owner-example/runtime-compat,owner-example,runtime-compat,https://example.invalid/owner-example/runtime-compat
-# owner-example/release-bot,owner-example,release-bot,https://example.invalid/owner-example/release-bot
-# team-demo/api-gateway,team-demo,api-gateway,https://example.invalid/team-demo/api-gateway
-# team-demo/control-plane,team-demo,control-plane,https://example.invalid/team-demo/control-plane
-# team-demo/customer-sync,team-demo,customer-sync,https://example.invalid/team-demo/customer-sync
-# team-demo/docs-site,team-demo,docs-site,https://example.invalid/team-demo/docs-site
-# sample-owner/platform-core,sample-owner,platform-core,https://example.invalid/sample-owner/platform-core
-# sample-owner/plugin-pack,sample-owner,plugin-pack,https://example.invalid/sample-owner/plugin-pack
+owner-example/priority-sdk,owner-example,priority-sdk,https://example.invalid/owner-example/priority-sdk
+owner-example/ops-tooling,owner-example,ops-tooling,https://example.invalid/owner-example/ops-tooling
+owner-example/runtime-compat,owner-example,runtime-compat,https://example.invalid/owner-example/runtime-compat
+owner-example/release-bot,owner-example,release-bot,https://example.invalid/owner-example/release-bot
+team-demo/api-gateway,team-demo,api-gateway,https://example.invalid/team-demo/api-gateway
+team-demo/control-plane,team-demo,control-plane,https://example.invalid/team-demo/control-plane
+team-demo/customer-sync,team-demo,customer-sync,https://example.invalid/team-demo/customer-sync
+team-demo/docs-site,team-demo,docs-site,https://example.invalid/team-demo/docs-site
+sample-owner/platform-core,sample-owner,platform-core,https://example.invalid/sample-owner/platform-core
+sample-owner/plugin-pack,sample-owner,plugin-pack,https://example.invalid/sample-owner/plugin-pack

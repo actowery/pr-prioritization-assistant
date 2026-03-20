@@ -38,19 +38,14 @@ npm run build
 
 ## GitHub Actions
 
-This repo ships with two GitHub Actions workflows suitable for a public CLI package:
+This repo ships with a GitHub Actions workflow suitable for a public CLI package:
 
 - `CI`
   - Runs on pushes, pull requests, and manual dispatch
   - Tests on Ubuntu, macOS, and Windows
   - Verifies typecheck, build, test compilation, test execution, `npm pack --dry-run`, and CLI help output
-- `Release`
-  - Runs when a GitHub Release is published or via manual dispatch
-  - Rebuilds and retests on Ubuntu
-  - Creates and uploads the npm package tarball
-  - Publishes to npm with provenance when `NPM_TOKEN` is configured
 
-Before enabling the release workflow for real publishing, update the placeholder repository metadata in [package.json](./package.json):
+Before enabling automated publishing in the future, update the placeholder repository metadata in [package.json](./package.json):
 
 - `repository.url`
 - `homepage`
