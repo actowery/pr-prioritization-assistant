@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-03-19T00:00:00.000Z",
+  "summary": {
+    "scannedRepos": 2,
+    "reachableRepos": 2,
+    "totalPrs": 3,
+    "pickNextCount": 1,
+    "quickWinsCount": 1,
+    "importantButHeavyCount": 1,
+    "needsClarificationCount": 0,
+    "deprioritizeCount": 0,
+    "lowHangingFruitCount": 1,
+    "partialFailures": [],
+    "authModeLabel": "Using GitHub CLI authentication"
+  },
+  "recommendationGroups": {
+    "pickNext": [],
+    "quickWins": [],
+    "importantButHeavy": [],
+    "needsClarification": [],
+    "probablyDeprioritize": []
+  },
+  "repoSummaries": [],
+  "pullRequests": [],
+  "caveats": [
+    "These rankings are recommendations, not source-of-truth business decisions.",
+    "Human review is expected before scheduling or merging work.",
+    "Some signals are inferential and may be incomplete, especially when issue, stakeholder, or affiliation context is sparse."
+  ]
+}

@@ -1,0 +1,26 @@
+# one owner/repo per line
+owner-example/priority-sdk
+owner-example/docs-portal
+owner-example/platform-runtime
+owner-example/platform-cli
+owner-example/release-tooling
+owner-example/ops-tooling
+owner-example/ui-components
+owner-example/identity-service
+owner-example/data-gateway
+owner-example/observability-kit
+owner-example/plugin-framework
+owner-example/service-catalog
+owner-example/quality-checks
+owner-example/developer-shell
+owner-example/compat-layer
+owner-example/test-harness
+owner-example/package-bridge
+owner-example/build-orchestrator
+owner-example/module-registry
+owner-example/policy-engine
+owner-example/workflow-templates
+owner-example/infra-schemas
+owner-example/runtime-adapters
+owner-example/auth-connectors
+owner-example/release-playbooks

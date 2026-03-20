@@ -1,0 +1,60 @@
+{
+  "name": "pr-prioritization-assistant",
+  "version": "1.0.0",
+  "description": "CLI assistant that ranks GitHub pull requests across a provided T1 repository set.",
+  "type": "module",
+  "files": [
+    "dist",
+    "defaults",
+    "examples",
+    "scripts",
+    "prioritize-prs",
+    "prioritize-prs.cmd",
+    "README.md",
+    "QUICKSTART.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "prioritize-prs": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "clean": "node ./scripts/clean.mjs",
+    "clean:reports": "node ./scripts/clean.mjs --reports-only",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "test": "node ./scripts/run-tests.mjs",
+    "test:build": "tsc -p tsconfig.test.json",
+    "scan": "node ./dist/index.js",
+    "scan:dev": "tsx src/index.ts",
+    "scan:default": "npm run build && node ./dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "tsx src/index.ts"
+  },
+  "keywords": [
+    "github",
+    "pull-request",
+    "prioritization",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OWNER/REPO.git"
+  },
+  "homepage": "https://github.com/OWNER/REPO#readme",
+  "bugs": {
+    "url": "https://github.com/OWNER/REPO/issues"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^14.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

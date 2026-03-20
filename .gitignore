@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-tests/
+out/
+out-*/
+out-smoke/
+.env
+/repos.csv
+/repos.txt
+/repos.json
+/base-dir.txt
+/weights.json
+/repo_weights.json
+/affiliations.json
+/low_hanging_thresholds.json
+/label_rules.json
+/code_jam_thresholds.json

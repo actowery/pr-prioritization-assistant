@@ -1,0 +1,3 @@
+# one owner/repo per line
+owner-example/priority-sdk
+owner-example/ops-tooling

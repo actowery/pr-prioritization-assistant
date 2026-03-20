@@ -1,0 +1,13 @@
+# PR Prioritization Assistant ownership map
+
+* @exampleorg/pr-prioritization-maintainers
+
+/src/ @exampleorg/pr-prioritization-maintainers
+/src/github/ @exampleorg/platform-core
+/tests/ @exampleorg/pr-prioritization-maintainers
+/defaults/ @exampleorg/pr-prioritization-maintainers
+/examples/ @exampleorg/pr-prioritization-maintainers
+/README.md @exampleorg/pr-prioritization-maintainers
+/TESTING.md @exampleorg/pr-prioritization-maintainers
+/Makefile @exampleorg/pr-prioritization-maintainers
+/package.json @exampleorg/pr-prioritization-maintainers

@@ -1,0 +1,13 @@
+{
+  "pickNextMinScore": 5.4,
+  "pickNextFloorScore": 4.8,
+  "pickNextTargetCount": 3,
+  "pickNextFallbackMergeReadinessMin": 8,
+  "pickNextFallbackEffortMin": 7,
+  "quickWinMinScore": 4.8,
+  "importantButHeavyBusinessScore": 6.0,
+  "importantButHeavyEffortMax": 4.5,
+  "highScoreThreshold": 6.0,
+  "stalePrAgeDays": 45,
+  "stalePrIdleDays": 21
+}

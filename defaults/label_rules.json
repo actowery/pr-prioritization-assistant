@@ -1,0 +1,52 @@
+{
+  "businessLabels": [
+    "release-blocker",
+    "release",
+    "customer",
+    "support",
+    "security",
+    "regression",
+    "compatibility",
+    "compat",
+    "urgent",
+    "breaking-change"
+  ],
+  "unblockLabels": [
+    "blocker",
+    "blocked",
+    "compatibility",
+    "release",
+    "dependencies",
+    "dependency",
+    "migration",
+    "upgrade",
+    "unblock"
+  ],
+  "maintenanceLabels": [
+    "dependencies",
+    "maintenance",
+    "housekeeping",
+    "ci",
+    "workflow",
+    "automation",
+    "chore",
+    "github-actions",
+    "codeowners",
+    "devcontainer",
+    "lint",
+    "formatting"
+  ],
+  "quickWinLabels": [
+    "docs",
+    "documentation",
+    "typo",
+    "test",
+    "tests",
+    "bug",
+    "bugfix",
+    "regression",
+    "compat",
+    "small fix"
+  ],
+  "customerLabels": ["customer", "support", "field", "solutions", "success"]
+}
