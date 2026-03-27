@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run test:build)",
+      "Bash(npm test)",
+      "Bash(npm run scan)",
+      "Bash(npm run scan:dev*)",
+      "Bash(npm pack --dry-run)",
+      "Bash(node scripts/clean.mjs)",
+      "Bash(node scripts/clean.mjs --reports-only)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git status)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q '\"file_path\":.*\\.ts\"'; then cd \"$CLAUDE_PROJECT_DIR\" && npm run typecheck 2>&1 | tail -30; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

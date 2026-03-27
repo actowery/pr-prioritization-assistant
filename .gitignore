@@ -5,6 +5,8 @@ out/
 out-*/
 out-smoke/
 .env
+.claude/settings.local.json
+.claude/worktrees/
 /repos.csv
 /repos.txt
 /repos.json
