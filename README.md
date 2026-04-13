@@ -15,6 +15,7 @@ The assistant is intentionally advisory:
 - Prefers authenticated `gh` CLI, falls back to token-based API auth
 - Accepts repos from repeated `--repo`, text files, JSON arrays, or CSV files
 - Can discover repos automatically from CODEOWNERS matches across a GitHub org
+- `list-repos` subcommand to list CODEOWNERS-owned repos without running a full PR scan
 - Can narrow CODEOWNERS runs by active review ownership, touched owned paths, or both
 - Collects PR metadata, diff metrics, discussion activity, merge-readiness, freshness, and lightweight business or unblock signals
 - Produces transparent subscores plus an overall ranking
@@ -135,6 +136,52 @@ CSV input resolved from a base-dir file:
 npx prioritize-prs --base-dir-file ./examples/base-dir.txt --repos-csv repos.csv --repo-column repo --format md
 ```
 
+### list-repos subcommand
+
+List repos owned by a CODEOWNERS team without running a full PR scan:
+
+```bash
+node dist/index.js list-repos --org exampleorg --codeowners-team platform-core
+```
+
+This is useful for verifying team ownership coverage, building input lists for other tools, or quickly auditing which repos a team owns.
+
+Options:
+
+- `--org <org>` (required)
+- `--codeowners-team <team>` (required)
+- `--codeowners-mode <auto|search|deep>` (default: `auto`)
+- `--include-archived`
+- `--only-with-open-prs`
+- `--repo-limit <number>`
+- `--format <text|json|csv>` (default: `text`)
+- `--output <file>` — write to file instead of stdout
+- `--verbose`
+
+Output formats:
+
+- `text` — one `owner/repo` per line, suitable for piping
+- `json` — array of `{ owner, repo, fullName }` objects
+- `csv` — header row plus `owner,repo,fullName` rows
+
+Examples:
+
+```bash
+# Plain list
+node dist/index.js list-repos --org exampleorg --codeowners-team platform-core
+
+# JSON
+node dist/index.js list-repos --org exampleorg --codeowners-team platform-core --format json
+
+# Save to file
+node dist/index.js list-repos --org exampleorg --codeowners-team platform-core --output repos.txt
+
+# Only repos that currently have open PRs
+node dist/index.js list-repos --org exampleorg --codeowners-team platform-core --only-with-open-prs
+```
+
+The repo count is printed to stderr so it does not pollute piped output.
+
 ## Convenience Commands
 
 Cross-platform via npm:
@@ -174,6 +221,8 @@ without prefixing it with `node`, `npx`, or another launcher.
 
 ## CLI Options
 
+### Default command (PR prioritization)
+
 - `--repo owner/repo`
 - `--repos-file <path>`
 - `--repos-csv <path>`
@@ -198,6 +247,22 @@ without prefixing it with `node`, `npx`, or another launcher.
 - `--low-hanging-thresholds path/to/config.json`
 - `--label-rules-file path/to/label_rules.json`
 - `--code-jam-thresholds-file path/to/code_jam_thresholds.json`
+- `--verbose`
+
+### list-repos subcommand
+
+```bash
+node dist/index.js list-repos [options]
+```
+
+- `--org <org>` (required)
+- `--codeowners-team <team>` (required)
+- `--codeowners-mode <auto|search|deep>`
+- `--include-archived`
+- `--only-with-open-prs`
+- `--repo-limit <number>`
+- `--format text|json|csv`
+- `--output <file>`
 - `--verbose`
 
 ## Auth Behavior

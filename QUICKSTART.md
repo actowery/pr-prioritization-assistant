@@ -18,6 +18,8 @@ and it gives you:
 
 It is a recommendation assistant, not an auto-decider.
 
+It also ships a `list-repos` subcommand if you just want to see which repos a CODEOWNERS team owns, without running a full PR scan.
+
 ## Before You Start
 
 You need:
@@ -245,6 +247,16 @@ It is:
 - reasonably scalable
 - easy to inspect
 - unlikely to overwhelm them with raw JSON first
+
+## Just Want To See Which Repos A Team Owns?
+
+Use the `list-repos` subcommand — no PR scan, no reports, just the repo list:
+
+```bash
+node dist/index.js list-repos --org exampleorg --codeowners-team @exampleorg/platform-core
+```
+
+This is useful for verifying ownership before running a full scan, or for piping into other tools.
 
 ## Useful Follow-Up Files
 

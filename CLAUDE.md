@@ -5,8 +5,8 @@ A cross-platform CLI that scans GitHub repositories, analyzes open PRs, and prod
 ## Architecture
 
 ```
-src/index.ts          # Thin entry point → calls parseCliOptions() + runCli()
-src/cli.ts            # Commander.js CLI, main orchestration
+src/index.ts          # Thin entry point — routes `list-repos` subcommand or falls through to parseCliOptions() + runCli()
+src/cli.ts            # Commander.js CLI, main orchestration; also exports parseListReposOptions() + runListRepos()
 src/auth.ts           # Auth: gh CLI → GITHUB_TOKEN → GH_TOKEN → GITHUB_PAT
 src/config.ts         # JSON config loading and merging
 src/constants.ts      # Default scoring weights and thresholds

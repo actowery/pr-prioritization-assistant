@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { existsSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkGitAvailability, detectAuth } from "./auth.js";
@@ -481,6 +482,111 @@ function printStdoutSummary(summary: RunSummary, writtenFiles: string[]): void {
   if (summary.partialFailures.length > 0) {
     console.log(`${summary.partialFailures.length} repos had partial failures`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// list-repos subcommand
+// ---------------------------------------------------------------------------
+
+interface ListReposOptions {
+  org: string;
+  codeownersTeam: string;
+  codeownersMode: CliOptions["codeownersMode"];
+  includeArchived: boolean;
+  onlyWithOpenPrs: boolean;
+  repoLimit?: number;
+  format: "text" | "json" | "csv";
+  output?: string;
+  verbose: boolean;
+}
+
+export function parseListReposOptions(argv: string[]): ListReposOptions {
+  const program = new Command()
+    .name("list-repos")
+    .description("List repositories owned by a CODEOWNERS team.")
+    .requiredOption("--org <org>", "GitHub organization")
+    .requiredOption("--codeowners-team <team>", "Team slug or @org/team to match in CODEOWNERS files")
+    .option("--codeowners-mode <mode>", "CODEOWNERS discovery mode: auto|search|deep", "auto")
+    .option("--include-archived", "Include archived repositories")
+    .option("--only-with-open-prs", "Filter to repositories with open PRs")
+    .option("--repo-limit <number>", "Limit repositories inspected during discovery", parseOptionalInt)
+    .option("--format <format>", "Output format: text|json|csv", "text")
+    .option("--output <file>", "Write output to a file instead of stdout")
+    .option("--verbose", "Enable verbose logging");
+
+  program.parse(["node", "list-repos", ...argv]);
+  const raw = program.opts();
+
+  return {
+    org: raw.org as string,
+    codeownersTeam: raw.codeownersTeam as string,
+    codeownersMode: parseCodeownersMode(raw.codeownersMode as string),
+    includeArchived: Boolean(raw.includeArchived),
+    onlyWithOpenPrs: Boolean(raw.onlyWithOpenPrs),
+    repoLimit: raw.repoLimit,
+    format: parseListReposFormat(raw.format as string),
+    output: raw.output,
+    verbose: Boolean(raw.verbose),
+  };
+}
+
+export async function runListRepos(options: ListReposOptions): Promise<void> {
+  const logger = createLogger(options.verbose);
+
+  const gitAvailable = await checkGitAvailability();
+  if (!gitAvailable) {
+    throw new Error("`git` is not available. Install Git and retry.");
+  }
+
+  const auth = await detectAuth(logger);
+  logger.info(auth.label);
+
+  const client = new GitHubClient({
+    token: auth.token,
+    logger,
+    verbose: options.verbose,
+  });
+
+  logger.info(`Discovering repos in ${options.org} owned by ${options.codeownersTeam}...`);
+  const repos = await client.discoverReposByCodeowners(options.org, options.codeownersTeam, {
+    mode: options.codeownersMode,
+    includeArchived: options.includeArchived,
+    onlyWithOpenPrs: options.onlyWithOpenPrs,
+    repoLimit: options.repoLimit,
+  });
+
+  const output = formatRepoList(repos, options.format);
+
+  if (options.output) {
+    await writeFile(options.output, output, "utf8");
+    console.log(`wrote ${repos.length} repo(s) to ${options.output}`);
+  } else {
+    if (output.length > 0) {
+      console.log(output);
+    }
+    console.error(`found ${repos.length} repo(s)`);
+  }
+}
+
+function parseListReposFormat(value: string): "text" | "json" | "csv" {
+  if (value === "text" || value === "json" || value === "csv") {
+    return value;
+  }
+  throw new Error(`Expected --format to be one of text, json, csv but received "${value}"`);
+}
+
+function formatRepoList(repos: RepoRef[], format: "text" | "json" | "csv"): string {
+  if (repos.length === 0) {
+    return "";
+  }
+  if (format === "json") {
+    return JSON.stringify(repos, null, 2);
+  }
+  if (format === "csv") {
+    const rows = ["owner,repo,fullName", ...repos.map((r) => `${r.owner},${r.repo},${r.fullName}`)];
+    return rows.join("\n");
+  }
+  return repos.map((r) => r.fullName).join("\n");
 }
 
 function collectOption(value: string, previous: string[]): string[] {

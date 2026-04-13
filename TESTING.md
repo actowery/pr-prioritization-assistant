@@ -51,6 +51,26 @@ If you installed the package as a normal command:
 prioritize-prs --help
 ```
 
+## list-repos Smoke Test
+
+Verify the subcommand routes correctly and returns a repo list:
+
+```bash
+node dist/index.js list-repos --org exampleorg --codeowners-team platform-core
+```
+
+JSON output:
+
+```bash
+node dist/index.js list-repos --org exampleorg --codeowners-team platform-core --format json
+```
+
+What to verify:
+
+- One `owner/repo` per line in text mode, or a valid JSON array in json mode.
+- The repo count is printed to stderr, not stdout.
+- The existing default command still works (`node dist/index.js --repo owner/repo`).
+
 ## CODEOWNERS Discovery Smoke Test
 
 Example command:
