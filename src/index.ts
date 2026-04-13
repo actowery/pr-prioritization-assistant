@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-import { parseCliOptions, parseListReposOptions, runCli, runListRepos } from "./cli.js";
+import { parseCliOptions, parseIssueCliOptions, parseListReposOptions, runCli, runIssueCli, runListRepos } from "./cli.js";
 
 const args = process.argv.slice(2);
 
 async function main(): Promise<void> {
-  if (args[0] === "list-repos") {
+  if (args[0] === "prioritize-issues") {
+    const options = parseIssueCliOptions(args.slice(1));
+    await runIssueCli(options);
+  } else if (args[0] === "list-repos") {
     const options = parseListReposOptions(args.slice(1));
     await runListRepos(options);
   } else {

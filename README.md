@@ -9,7 +9,8 @@ The assistant is intentionally advisory — it does not merge PRs, comment on PR
 - Auth detection with clear failure guidance — prefers `gh` CLI, falls back to token-based auth
 - Accepts repos from repeated `--repo`, text files, JSON arrays, or CSV files
 - Discovers repos automatically from CODEOWNERS matches across a GitHub org
-- `list-repos` subcommand to list CODEOWNERS-owned repos without running a PR scan
+- `prioritize-issues` subcommand to score and bucket open GitHub issues (separate from the PR pipeline)
+- `list-repos` subcommand to list CODEOWNERS-owned repos without running any scan
 - Narrows CODEOWNERS runs by active review ownership, touched owned paths, or both
 - Collects PR metadata, diff metrics, discussion activity, merge-readiness, freshness, and lightweight business or unblock signals
 - Produces transparent subscores plus an overall ranking
@@ -115,6 +116,25 @@ node dist/index.js list-repos --org exampleorg --codeowners-team platform-core -
 
 The repo count is printed to stderr so it does not pollute piped output. See [CLI Options](#cli-options) for the full flag reference.
 
+### prioritize-issues subcommand
+
+Score and bucket open GitHub issues using a 6-dimension scoring model. This is a separate pipeline from PR prioritization — you run one or the other, not both together:
+
+```bash
+# Single repo
+node dist/index.js prioritize-issues --repo owner-example/repo-one --format all --output-dir ./out
+
+# CODEOWNERS discovery
+node dist/index.js prioritize-issues --org exampleorg --codeowners-team platform-core --only-with-open-prs --format md --output-dir ./out
+
+# Limit issues fetched per repo
+node dist/index.js prioritize-issues --repo owner-example/repo-one --max-issues-per-repo 50 --format md
+```
+
+Output files: `issue-priorities.md`, `issue-priorities.json`, `issue-priorities.csv`.
+
+Buckets: `Act Now` → `Quick Triage` → `Important but Needs Scoping` → `Needs More Info` → `Deprioritize`
+
 ## Convenience Commands
 
 ```bash
@@ -157,6 +177,28 @@ macOS/Linux `make` aliases: `make build`, `make test`, `make scan`, `make clean`
 - `--low-hanging-thresholds path/to/config.json`
 - `--label-rules-file path/to/label_rules.json`
 - `--code-jam-thresholds-file path/to/code_jam_thresholds.json`
+- `--verbose`
+
+### prioritize-issues subcommand
+
+- `--repo owner/repo` (repeatable)
+- `--repos-file <path>`
+- `--repos-csv <path>`
+- `--org <org>`
+- `--codeowners-team <team>`
+- `--codeowners-mode <auto|search|deep>`
+- `--include-archived`
+- `--only-with-open-prs`
+- `--repo-limit <number>`
+- `--base-dir-file <path>`
+- `--repo-column <name>`
+- `--output-dir <path>`
+- `--format json|md|csv|all`
+- `--max-issues-per-repo <number>`
+- `--org-affiliation-map <path>`
+- `--repo-business-weight <path>`
+- `--issue-weights-file <path>`
+- `--label-rules-file <path>`
 - `--verbose`
 
 ### list-repos subcommand

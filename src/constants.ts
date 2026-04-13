@@ -1,4 +1,4 @@
-import { ConfigBundle } from "./types.js";
+import { ConfigBundle, IssueScoringWeights, IssueThresholds } from "./types.js";
 
 export const DEFAULT_CONFIG: ConfigBundle = {
   weights: {
@@ -85,3 +85,24 @@ export const DEFAULT_CONFIG: ConfigBundle = {
 };
 
 export const GITHUB_API_URL = "https://api.github.com";
+
+export const DEFAULT_ISSUE_WEIGHTS: IssueScoringWeights = {
+  businessRelevance: 0.34,
+  unblockValue: 0.22,
+  triageReadiness: 0.16,
+  effortToResolve: 0.14,
+  stalenessSignal: 0.09,
+  communityValue: 0.05,
+};
+
+export const DEFAULT_ISSUE_THRESHOLDS: IssueThresholds = {
+  actNowMinScore: 5.2,
+  actNowFloorScore: 4.7,
+  actNowTargetCount: 3,
+  quickTriageMinScore: 4.5,
+  importantNeedsScopingBusinessScore: 6.0,
+  importantNeedsScopingEffortMax: 4.5,
+  highScoreThreshold: 5.5,
+  staleIssueAgeDays: 60,
+  staleIssueIdleDays: 30,
+};

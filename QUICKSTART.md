@@ -18,7 +18,10 @@ and it gives you:
 
 It is a recommendation assistant, not an auto-decider.
 
-It also ships a `list-repos` subcommand if you just want to see which repos a CODEOWNERS team owns, without running a full PR scan.
+It also ships two additional subcommands:
+
+- `prioritize-issues` — run the issue scoring pipeline instead of PRs (separate mode, same repo discovery)
+- `list-repos` — list repos owned by a CODEOWNERS team without running any scan
 
 ## Before You Start
 
@@ -248,9 +251,27 @@ It is:
 - easy to inspect
 - unlikely to overwhelm them with raw JSON first
 
+## Prioritize Issues Instead Of PRs
+
+Use the `prioritize-issues` subcommand — same repo discovery, same config, separate scoring pipeline and output files:
+
+```bash
+node dist/index.js prioritize-issues --repo owner-example/repo-one --format all --output-dir ./out
+```
+
+CODEOWNERS discovery works the same way:
+
+```bash
+node dist/index.js prioritize-issues --org exampleorg --codeowners-team @exampleorg/platform-core --only-with-open-prs --format md --output-dir ./out
+```
+
+Output files: `issue-priorities.md`, `issue-priorities.json`, `issue-priorities.csv`
+
+Buckets: `Act Now` → `Quick Triage` → `Important but Needs Scoping` → `Needs More Info` → `Deprioritize`
+
 ## Just Want To See Which Repos A Team Owns?
 
-Use the `list-repos` subcommand — no PR scan, no reports, just the repo list:
+Use the `list-repos` subcommand — no scan, no reports, just the repo list:
 
 ```bash
 node dist/index.js list-repos --org exampleorg --codeowners-team @exampleorg/platform-core

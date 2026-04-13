@@ -1,8 +1,10 @@
-import { DEFAULT_CONFIG } from "./constants.js";
+import { DEFAULT_CONFIG, DEFAULT_ISSUE_THRESHOLDS, DEFAULT_ISSUE_WEIGHTS } from "./constants.js";
 import {
   CliOptions,
   CodeJamThresholds,
   ConfigBundle,
+  IssueCliOptions,
+  IssueScoringWeights,
   LabelRules,
   LowHangingThresholds,
   ScoringWeights,
@@ -114,6 +116,46 @@ export function normalizeAffiliationMap(input?: AffiliationInput): Record<string
   return Object.fromEntries(
     Object.entries(collected).map(([user, categories]) => [user, categories.join(", ")]),
   );
+}
+
+export async function loadIssueConfig(options: IssueCliOptions): Promise<ConfigBundle> {
+  const config: ConfigBundle = {
+    weights: { ...DEFAULT_CONFIG.weights },
+    repoWeights: { ...DEFAULT_CONFIG.repoWeights },
+    affiliationMap: { ...DEFAULT_CONFIG.affiliationMap },
+    lowHangingThresholds: { ...DEFAULT_CONFIG.lowHangingThresholds },
+    labelRules: { ...DEFAULT_CONFIG.labelRules },
+    codeJamThresholds: { ...DEFAULT_CONFIG.codeJamThresholds },
+    issueWeights: { ...DEFAULT_ISSUE_WEIGHTS },
+    issueThresholds: { ...DEFAULT_ISSUE_THRESHOLDS },
+  };
+
+  if (options.repoBusinessWeight) {
+    const repoWeights = await loadOptionalJsonFile<Record<string, number>>(options.repoBusinessWeight);
+    config.repoWeights = { ...config.repoWeights, ...(repoWeights ?? {}) };
+  }
+
+  if (options.orgAffiliationMap) {
+    const affiliationMap = await loadOptionalJsonFile<AffiliationInput>(options.orgAffiliationMap);
+    config.affiliationMap = {
+      ...config.affiliationMap,
+      ...normalizeAffiliationMap(affiliationMap),
+    };
+  }
+
+  if (options.labelRulesFile) {
+    const labelRules = await loadOptionalJsonFile<Partial<LabelRules>>(options.labelRulesFile);
+    config.labelRules = mergeLabelRules(config.labelRules, labelRules);
+  }
+
+  if (options.issueWeightsFile) {
+    const issueWeights = await loadOptionalJsonFile<Partial<IssueScoringWeights>>(options.issueWeightsFile);
+    if (issueWeights && config.issueWeights) {
+      config.issueWeights = { ...config.issueWeights, ...issueWeights };
+    }
+  }
+
+  return config;
 }
 
 export async function loadConfig(options: CliOptions): Promise<ConfigBundle> {

@@ -5,18 +5,20 @@ A cross-platform CLI that scans GitHub repositories, analyzes open PRs, and prod
 ## Architecture
 
 ```
-src/index.ts          # Thin entry point — routes `list-repos` subcommand or falls through to parseCliOptions() + runCli()
-src/cli.ts            # Commander.js CLI, main orchestration; also exports parseListReposOptions() + runListRepos()
-src/auth.ts           # Auth: gh CLI → GITHUB_TOKEN → GH_TOKEN → GITHUB_PAT
-src/config.ts         # JSON config loading and merging
-src/constants.ts      # Default scoring weights and thresholds
-src/types.ts          # All TypeScript type definitions
-src/scoring.ts        # Multi-dimensional PR scoring heuristics
-src/github/client.ts  # GitHub API client
-src/github/codeowners.ts  # CODEOWNERS parsing and team matching
-src/reporting/reporters.ts  # Markdown, JSON, CSV report generation
-src/utils.ts          # Path resolution, file I/O, command execution
-src/logging.ts        # Structured logger with verbose mode
+src/index.ts                        # Thin entry point — routes prioritize-issues, list-repos, or PR default
+src/cli.ts                          # Commander.js CLI, main orchestration; exports all parse*/run* functions
+src/auth.ts                         # Auth: gh CLI → GITHUB_TOKEN → GH_TOKEN → GITHUB_PAT
+src/config.ts                       # JSON config loading and merging; loadIssueConfig for issue pipeline
+src/constants.ts                    # Default scoring weights and thresholds (PR and issue)
+src/types.ts                        # All TypeScript type definitions
+src/scoring.ts                      # Multi-dimensional PR scoring heuristics
+src/scoring-issues.ts               # Multi-dimensional issue scoring heuristics
+src/github/client.ts                # GitHub API client; fetchRepoIssues() for issue pipeline
+src/github/codeowners.ts            # CODEOWNERS parsing and team matching
+src/reporting/reporters.ts          # Markdown, JSON, CSV report generation (PR)
+src/reporting/issue-reporters.ts    # Markdown, JSON, CSV report generation (issues)
+src/utils.ts                        # Path resolution, file I/O, command execution
+src/logging.ts                      # Structured logger with verbose mode
 ```
 
 Tests mirror source: `tests/scoring.test.ts` covers `src/scoring.ts`, etc.

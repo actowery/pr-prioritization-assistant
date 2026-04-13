@@ -4,12 +4,14 @@ import { writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkGitAvailability, detectAuth } from "./auth.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, loadIssueConfig } from "./config.js";
 import { GitHubClient } from "./github/client.js";
 import { createLogger } from "./logging.js";
+import { writeIssueReports } from "./reporting/issue-reporters.js";
 import { writeReports } from "./reporting/reporters.js";
+import { promoteActNowCandidates, scoreIssue } from "./scoring-issues.js";
 import { promotePickNextCandidates, scorePullRequest } from "./scoring.js";
-import { CliOptions, FetchRepoResult, FullReport, OwnershipMode, RepoRef, RunSummary } from "./types.js";
+import { CliOptions, FetchIssueResult, FetchRepoResult, FullReport, IssueCliOptions, IssueFullReport, IssueRecommendationGroups, IssueRunSummary, OwnershipMode, RepoRef, RunSummary } from "./types.js";
 import {
   mapLimit,
   parseRepository,
@@ -633,5 +635,210 @@ function findPackageRoot(startDir: string): string {
       return startDir;
     }
     current = parent;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// prioritize-issues subcommand
+// ---------------------------------------------------------------------------
+
+export function parseIssueCliOptions(argv: string[]): IssueCliOptions {
+  const program = new Command()
+    .name("prioritize-issues")
+    .description("Scan a provided GitHub repository list and recommend an explainable issue triage order.")
+    .option("--repo <owner/repo>", "Repository to scan", collectOption, [])
+    .option("--repos-file <path>", "Text or JSON file containing repositories")
+    .option("--repos-csv <path>", "CSV file containing repositories")
+    .option("--org <org>", "GitHub organization to search for CODEOWNERS matches")
+    .option("--codeowners-team <team>", "Team slug or @org/team to match in CODEOWNERS files")
+    .option("--codeowners-mode <mode>", "CODEOWNERS discovery mode: auto|search|deep", "auto")
+    .option("--include-archived", "Include archived repositories during CODEOWNERS discovery")
+    .option("--only-with-open-prs", "After CODEOWNERS discovery, keep only repos with open issues")
+    .option("--repo-limit <number>", "Limit repositories inspected during CODEOWNERS discovery", parseOptionalInt)
+    .option("--base-dir-file <path>", "File whose contents specify a base directory for resolving repo input files")
+    .option("--repo-column <name>", "CSV column name to read repos from")
+    .option("--output-dir <path>", "Directory for reports", "./out")
+    .option("--format <format>", "Output format: json|md|csv|all", "all")
+    .option("--max-issues-per-repo <number>", "Limit issues fetched per repository", parseOptionalInt)
+    .option("--issue-weights-file <path>", "Path to issue scoring weight overrides")
+    .option("--org-affiliation-map <path>", "Path to username -> affiliation map")
+    .option("--repo-business-weight <path>", "Path to repo -> strategic multiplier map")
+    .option("--label-rules-file <path>", "Path to label interpretation rules")
+    .option("--verbose", "Enable verbose logging");
+
+  program.parse(["node", "prioritize-issues", ...argv]);
+  const raw = program.opts();
+
+  return {
+    repos: raw.repo ?? [],
+    reposFile: raw.reposFile,
+    reposCsv: raw.reposCsv,
+    org: raw.org,
+    codeownersTeam: raw.codeownersTeam,
+    codeownersMode: parseCodeownersMode(raw.codeownersMode as string),
+    includeArchived: Boolean(raw.includeArchived),
+    onlyWithOpenPrs: Boolean(raw.onlyWithOpenPrs),
+    repoLimit: raw.repoLimit,
+    baseDirFile: raw.baseDirFile,
+    repoColumn: raw.repoColumn,
+    outputDir: raw.outputDir as string,
+    format: raw.format as IssueCliOptions["format"],
+    maxIssuesPerRepo: raw.maxIssuesPerRepo,
+    issueWeightsFile: raw.issueWeightsFile,
+    orgAffiliationMap: raw.orgAffiliationMap,
+    repoBusinessWeight: raw.repoBusinessWeight,
+    labelRulesFile: raw.labelRulesFile,
+    verbose: Boolean(raw.verbose),
+  };
+}
+
+export async function runIssueCli(options: IssueCliOptions): Promise<void> {
+  const logger = createLogger(options.verbose);
+
+  if ((options.org && !options.codeownersTeam) || (!options.org && options.codeownersTeam)) {
+    throw new Error("Use `--org` and `--codeowners-team` together.");
+  }
+
+  const gitAvailable = await checkGitAvailability();
+  if (!gitAvailable) {
+    throw new Error("`git` is not available. Install Git and retry.");
+  }
+
+  const auth = await detectAuth(logger);
+  logger.info(auth.label);
+
+  const config = await loadIssueConfig(options);
+  const client = new GitHubClient({ token: auth.token, logger, verbose: options.verbose });
+
+  // Build a CliOptions-compatible shape so loadRepositories can be reused as-is.
+  const repoDiscoveryOptions: CliOptions = {
+    repos: options.repos,
+    reposFile: options.reposFile,
+    reposCsv: options.reposCsv,
+    org: options.org,
+    codeownersTeam: options.codeownersTeam,
+    codeownersMode: options.codeownersMode,
+    ownershipMode: "either",
+    includeArchived: options.includeArchived,
+    onlyWithOpenPrs: options.onlyWithOpenPrs,
+    repoLimit: options.repoLimit,
+    baseDirFile: options.baseDirFile,
+    repoColumn: options.repoColumn,
+    outputDir: options.outputDir,
+    format: options.format,
+    excludeDrafts: false,
+    includeDrafts: false,
+    verbose: options.verbose,
+  };
+
+  const repos = await loadRepositories(repoDiscoveryOptions, client, logger);
+  if (repos.length === 0) {
+    throw new Error(
+      "No repositories were provided. Use `--repo`, `--repos-file`, `--repos-csv`, or `--org` with `--codeowners-team`.",
+    );
+  }
+
+  logger.info(`Scanning ${repos.length} repo(s) for issues...`);
+
+  const results = await mapLimit(repos, 2, async (repo): Promise<FetchIssueResult> => {
+    try {
+      logger.verbose(`Fetching issues for ${repo.fullName}`);
+      const rawIssues = await client.fetchRepoIssues(repo, {
+        maxIssuesPerRepo: options.maxIssuesPerRepo,
+        affiliationMap: config.affiliationMap,
+      });
+      return { repo, issues: rawIssues.map((issue) => scoreIssue(issue, config)) };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn(`${repo.fullName}: ${message}`);
+      return { repo, issues: [], error: message };
+    }
+  });
+
+  const reachableResults = results.filter((r) => !r.error);
+  const issues = reachableResults
+    .flatMap((r) => r.issues)
+    .sort((a, b) => b.finalScore - a.finalScore);
+
+  promoteActNowCandidates(issues, config);
+
+  const recommendationGroups: IssueRecommendationGroups = {
+    actNow: issues.filter((i) => i.recommendationBucket === "Act Now"),
+    quickTriage: issues.filter((i) => i.recommendationBucket === "Quick Triage"),
+    importantNeedsScoping: issues.filter((i) => i.recommendationBucket === "Important but Needs Scoping"),
+    needsMoreInfo: issues.filter((i) => i.recommendationBucket === "Needs More Info"),
+    deprioritize: issues.filter((i) => i.recommendationBucket === "Deprioritize"),
+  };
+
+  const issueSummary: IssueRunSummary = {
+    scannedRepos: repos.length,
+    reachableRepos: reachableResults.length,
+    totalIssues: issues.length,
+    actNowCount: recommendationGroups.actNow.length,
+    quickTriageCount: recommendationGroups.quickTriage.length,
+    importantNeedsScopingCount: recommendationGroups.importantNeedsScoping.length,
+    needsMoreInfoCount: recommendationGroups.needsMoreInfo.length,
+    deprioritizeCount: recommendationGroups.deprioritize.length,
+    partialFailures: results
+      .filter((r) => r.error)
+      .map((r) => ({ repo: r.repo.fullName, error: r.error ?? "Unknown error" })),
+    authModeLabel: auth.label,
+  };
+
+  const repoSummaries = reachableResults
+    .filter((r) => r.issues.length > 0)
+    .map((r) => {
+      const thresholds = config.issueThresholds;
+      const sorted = [...r.issues].sort((a, b) => b.finalScore - a.finalScore);
+      const top = sorted[0];
+      return {
+        repo: r.repo.fullName,
+        totalOpenIssues: r.issues.length,
+        highScoreIssues: r.issues.filter((i) => i.finalScore >= (thresholds?.highScoreThreshold ?? 5.5)).length,
+        staleIssues: r.issues.filter(
+          (i) => i.ageDays > (thresholds?.staleIssueAgeDays ?? 60) && i.daysSinceLastUpdate > (thresholds?.staleIssueIdleDays ?? 30),
+        ).length,
+        actNowIssues: r.issues.filter((i) => i.recommendationBucket === "Act Now").length,
+        quickTriageIssues: r.issues.filter((i) => i.recommendationBucket === "Quick Triage").length,
+        recommendedTopIssue: top
+          ? { number: top.number, title: top.title, url: top.url, score: top.finalScore }
+          : undefined,
+      };
+    });
+
+  const caveats = [
+    "These rankings are recommendations, not source-of-truth triage decisions.",
+    "Human review is expected before assigning or escalating issues.",
+    "Reproduction step detection and signal inference are heuristic and may miss important context.",
+  ];
+
+  if (issueSummary.totalIssues === 0 && issueSummary.partialFailures.length > 0) {
+    caveats.unshift("No issues were analyzed due to partial failures. Rerun after the GitHub rate limit resets.");
+  } else if (issueSummary.totalIssues === 0) {
+    caveats.unshift("No open issues matched the current filters in this run.");
+  }
+
+  const report: IssueFullReport = {
+    generatedAt: new Date().toISOString(),
+    summary: issueSummary,
+    recommendationGroups,
+    repoSummaries,
+    issues,
+    caveats,
+  };
+
+  const writtenFiles = await writeIssueReports(report, resolve(options.outputDir), options.format);
+  printIssueSummary(issueSummary, writtenFiles);
+}
+
+function printIssueSummary(summary: IssueRunSummary, writtenFiles: string[]): void {
+  console.log(`scanned ${summary.scannedRepos} repos`);
+  console.log(`found ${summary.totalIssues} open issues`);
+  console.log(`${summary.actNowCount} marked as act-now`);
+  console.log(`${summary.quickTriageCount} quick-triage candidates`);
+  console.log(`${summary.importantNeedsScopingCount} important but needs scoping`);
+  console.log(`reports written to ${writtenFiles.join(", ")}`);
+  if (summary.partialFailures.length > 0) {
+    console.log(`${summary.partialFailures.length} repos had partial failures`);
   }
 }

@@ -53,6 +53,8 @@ export interface ConfigBundle {
   lowHangingThresholds: LowHangingThresholds;
   labelRules: LabelRules;
   codeJamThresholds: CodeJamThresholds;
+  issueWeights?: IssueScoringWeights | undefined;
+  issueThresholds?: IssueThresholds | undefined;
 }
 
 export interface LabelRules {
@@ -224,4 +226,148 @@ export interface RecommendationGroups {
   importantButHeavy: PullRequestAnalysis[];
   needsClarification: PullRequestAnalysis[];
   probablyDeprioritize: PullRequestAnalysis[];
+}
+
+// ---------------------------------------------------------------------------
+// Issue prioritization types
+// ---------------------------------------------------------------------------
+
+export interface IssueCliOptions {
+  repos: string[];
+  reposFile?: string | undefined;
+  reposCsv?: string | undefined;
+  org?: string | undefined;
+  codeownersTeam?: string | undefined;
+  codeownersMode: CodeownersDiscoveryMode;
+  includeArchived: boolean;
+  onlyWithOpenPrs: boolean;
+  repoLimit?: number | undefined;
+  baseDirFile?: string | undefined;
+  repoColumn?: string | undefined;
+  outputDir: string;
+  format: OutputFormat;
+  maxIssuesPerRepo?: number | undefined;
+  issueWeightsFile?: string | undefined;
+  orgAffiliationMap?: string | undefined;
+  repoBusinessWeight?: string | undefined;
+  labelRulesFile?: string | undefined;
+  verbose: boolean;
+}
+
+export interface IssueScoringWeights {
+  businessRelevance: number;
+  unblockValue: number;
+  triageReadiness: number;
+  effortToResolve: number;
+  stalenessSignal: number;
+  communityValue: number;
+}
+
+export interface IssueThresholds {
+  actNowMinScore: number;
+  actNowFloorScore: number;
+  actNowTargetCount: number;
+  quickTriageMinScore: number;
+  importantNeedsScopingBusinessScore: number;
+  importantNeedsScopingEffortMax: number;
+  highScoreThreshold: number;
+  staleIssueAgeDays: number;
+  staleIssueIdleDays: number;
+}
+
+export interface IssueAnalysis {
+  repo: string;
+  repoOwner: string;
+  repoName: string;
+  repoUrl: string;
+  number: number;
+  title: string;
+  body: string;
+  url: string;
+  author: string;
+  authorAssociation?: string | undefined;
+  affiliation?: string | undefined;
+  state: "open";
+  createdAt: string;
+  updatedAt: string;
+  labels: string[];
+  assignees: string[];
+  commentCount: number;
+  milestone?: string | undefined;
+  linkedPrNumbers: number[];
+  reactionCount: number;
+  ageDays: number;
+  daysSinceLastUpdate: number;
+  urgencySignals: string[];
+  dependencySignals: string[];
+  businessSignals: string[];
+  businessRelevanceScore: number;
+  unblockValueScore: number;
+  triageReadinessScore: number;
+  effortToResolveScore: number;
+  stalenessSignalScore: number;
+  communityValueScore: number;
+  repoStrategicMultiplier: number;
+  finalScore: number;
+  tags: string[];
+  recommendationBucket:
+    | "Act Now"
+    | "Quick Triage"
+    | "Important but Needs Scoping"
+    | "Needs More Info"
+    | "Deprioritize";
+  explanation: string[];
+  caveats: string[];
+  confidence: "high" | "medium" | "low";
+}
+
+export interface FetchIssueResult {
+  repo: RepoRef;
+  issues: IssueAnalysis[];
+  error?: string | undefined;
+}
+
+export interface IssueRecommendationGroups {
+  actNow: IssueAnalysis[];
+  quickTriage: IssueAnalysis[];
+  importantNeedsScoping: IssueAnalysis[];
+  needsMoreInfo: IssueAnalysis[];
+  deprioritize: IssueAnalysis[];
+}
+
+export interface IssueRepoSummary {
+  repo: string;
+  totalOpenIssues: number;
+  highScoreIssues: number;
+  staleIssues: number;
+  actNowIssues: number;
+  quickTriageIssues: number;
+  recommendedTopIssue?: {
+    number: number;
+    title: string;
+    url: string;
+    score: number;
+  } | undefined;
+}
+
+export interface IssueRunSummary {
+  scannedRepos: number;
+  reachableRepos: number;
+  totalIssues: number;
+  actNowCount: number;
+  quickTriageCount: number;
+  importantNeedsScopingCount: number;
+  needsMoreInfoCount: number;
+  deprioritizeCount: number;
+  partialFailures: Array<{ repo: string; error: string }>;
+  authModeLabel: string;
+}
+
+export interface IssueFullReport {
+  generatedAt: string;
+  summary: IssueRunSummary;
+  recommendationGroups: IssueRecommendationGroups;
+  repoSummaries: IssueRepoSummary[];
+  issues: IssueAnalysis[];
+  caveats: string[];
 }

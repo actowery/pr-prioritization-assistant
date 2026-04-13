@@ -51,6 +51,28 @@ If you installed the package as a normal command:
 prioritize-prs --help
 ```
 
+## prioritize-issues Smoke Test
+
+Verify the subcommand routes correctly and emits issue report files:
+
+```bash
+node dist/index.js prioritize-issues --repo owner-example/repo-one --max-issues-per-repo 5 --format md --output-dir ./out
+```
+
+CODEOWNERS discovery:
+
+```bash
+node dist/index.js prioritize-issues --org exampleorg --codeowners-team platform-core --only-with-open-prs --repo-limit 5 --format all --output-dir ./out
+```
+
+What to verify:
+
+- `out/issue-priorities.md` exists and has 5 bucket sections.
+- `out/issue-priorities.json` and `out/issue-priorities.csv` exist when using `--format all`.
+- `out/pr-priorities.md` is unchanged if you also run the default PR command.
+- Running `node dist/index.js --repo owner-example/repo-one` still produces PR output (no regression).
+- `node dist/index.js prioritize-issues --help` prints the issue-specific flag list.
+
 ## list-repos Smoke Test
 
 Verify the subcommand routes correctly and returns a repo list:

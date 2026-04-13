@@ -1,5 +1,5 @@
 import { GITHUB_API_URL } from "../constants.js";
-import { CodeownersDiscoveryMode, Logger, OwnershipMode, PullRequestAnalysis, RepoRef } from "../types.js";
+import { CodeownersDiscoveryMode, IssueAnalysis, Logger, OwnershipMode, PullRequestAnalysis, RepoRef } from "../types.js";
 import {
   buildCodeownersSearchQuery,
   codeownersMentionsTeam,
@@ -137,6 +137,41 @@ interface TeamReviewContext {
 }
 
 type AssignedOwnershipMatch = "requested-team" | "requested-team-member" | "none";
+
+interface IssueSummary {
+  number: number;
+  title: string;
+  body?: string | null;
+  html_url: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  user?: { login?: string; type?: string } | null;
+  author_association?: string;
+  labels?: Array<{ name?: string }>;
+  assignees?: Array<{ login?: string }>;
+  comments?: number;
+  milestone?: { title?: string } | null;
+  pull_request?: unknown;
+  reactions?: { total_count?: number } | null;
+}
+
+export type RawIssueAnalysis = Omit<
+  IssueAnalysis,
+  | "businessRelevanceScore"
+  | "unblockValueScore"
+  | "triageReadinessScore"
+  | "effortToResolveScore"
+  | "stalenessSignalScore"
+  | "communityValueScore"
+  | "repoStrategicMultiplier"
+  | "finalScore"
+  | "tags"
+  | "recommendationBucket"
+  | "explanation"
+  | "caveats"
+  | "confidence"
+>;
 
 type RawPullRequestAnalysis = Omit<
   PullRequestAnalysis,
@@ -647,6 +682,80 @@ export class GitHubClient {
 
     return undefined;
   }
+
+  async fetchRepoIssues(
+    repo: RepoRef,
+    opts: { maxIssuesPerRepo?: number | undefined; affiliationMap: Record<string, string> },
+  ): Promise<RawIssueAnalysis[]> {
+    const limit = opts.maxIssuesPerRepo ?? 100;
+    const items = await this.requestOptional<IssueSummary[]>(
+      `/repos/${repo.owner}/${repo.repo}/issues?state=open&per_page=${Math.min(limit, 100)}&sort=updated&direction=desc`,
+      [],
+    );
+
+    const issuesOnly = items.filter((item) => !item.pull_request);
+
+    return issuesOnly.slice(0, limit).map((item): RawIssueAnalysis => {
+      const body = item.body ?? "";
+      const title = item.title ?? "";
+      const labels = (item.labels ?? []).map((l) => normalizeLabel(l.name ?? "")).filter(Boolean);
+      const assignees = (item.assignees ?? []).map((a) => a.login ?? "").filter(Boolean);
+      const author = item.user?.login ?? "unknown";
+      const authorAssociation = item.author_association;
+      const affiliation = opts.affiliationMap[author];
+      const createdAt = item.created_at;
+      const updatedAt = item.updated_at;
+      const ageDays = daysBetween(createdAt);
+      const daysSinceLastUpdate = daysBetween(updatedAt);
+      const repoUrl = `https://github.com/${repo.fullName}`;
+
+      return {
+        repo: repo.fullName,
+        repoOwner: repo.owner,
+        repoName: repo.repo,
+        repoUrl,
+        number: item.number,
+        title,
+        body,
+        url: item.html_url,
+        author,
+        ...(authorAssociation !== undefined ? { authorAssociation } : {}),
+        ...(affiliation !== undefined ? { affiliation } : {}),
+        state: "open",
+        createdAt,
+        updatedAt,
+        labels,
+        assignees,
+        commentCount: item.comments ?? 0,
+        ...(item.milestone?.title !== undefined ? { milestone: item.milestone.title } : {}),
+        linkedPrNumbers: detectLinkedPrNumbers(body),
+        reactionCount: item.reactions?.total_count ?? 0,
+        ageDays,
+        daysSinceLastUpdate,
+        urgencySignals: detectUrgencySignals(title, body),
+        dependencySignals: detectDependencySignals(title, body),
+        businessSignals: detectBusinessSignals(title, body, labels),
+      };
+    });
+  }
+}
+
+function detectLinkedPrNumbers(body: string): number[] {
+  const patterns = [
+    /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?|implement[sd]?|in|pr|pull request)\s+#(\d+)/gi,
+    /fixed by\s+#(\d+)/gi,
+    /PR:\s+#?(\d+)/gi,
+  ];
+  const found = new Set<number>();
+  for (const pattern of patterns) {
+    for (const match of body.matchAll(pattern)) {
+      const num = Number.parseInt(match[1] ?? "", 10);
+      if (!Number.isNaN(num)) {
+        found.add(num);
+      }
+    }
+  }
+  return [...found];
 }
 
 function detectLinkedIssues(text: string): string[] {
