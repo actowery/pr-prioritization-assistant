@@ -2,21 +2,15 @@
 
 CLI tool that scans a provided repository list, analyzes open GitHub pull requests, and emits an explainable recommendation order for human review.
 
-The assistant is intentionally advisory:
-
-- It does not merge PRs.
-- It does not comment on PRs.
-- It does not claim to know final business priority.
-- It does show its work so a maintainer can validate or override the ranking quickly.
+The assistant is intentionally advisory — it does not merge PRs, comment on PRs, or claim to know final business priority. It shows its work so a maintainer can validate or override the ranking quickly.
 
 ## Features
 
-- Auth detection with clear failure guidance
-- Prefers authenticated `gh` CLI, falls back to token-based API auth
+- Auth detection with clear failure guidance — prefers `gh` CLI, falls back to token-based auth
 - Accepts repos from repeated `--repo`, text files, JSON arrays, or CSV files
-- Can discover repos automatically from CODEOWNERS matches across a GitHub org
-- `list-repos` subcommand to list CODEOWNERS-owned repos without running a full PR scan
-- Can narrow CODEOWNERS runs by active review ownership, touched owned paths, or both
+- Discovers repos automatically from CODEOWNERS matches across a GitHub org
+- `list-repos` subcommand to list CODEOWNERS-owned repos without running a PR scan
+- Narrows CODEOWNERS runs by active review ownership, touched owned paths, or both
 - Collects PR metadata, diff metrics, discussion activity, merge-readiness, freshness, and lightweight business or unblock signals
 - Produces transparent subscores plus an overall ranking
 - Emits Markdown, JSON, and CSV reports
@@ -26,9 +20,7 @@ The assistant is intentionally advisory:
 
 - Node.js 22+
 - Git installed
-- One of:
-  - `gh auth login` completed successfully
-  - `GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_PAT` set with GitHub API access
+- GitHub auth — see [Auth Behavior](#auth-behavior)
 
 ## Install
 
@@ -37,187 +29,105 @@ npm install
 npm run build
 ```
 
+To make `prioritize-prs` available as a normal shell command:
+
+```bash
+npm link
+```
+
 ## GitHub Actions
 
-This repo ships with a GitHub Actions workflow suitable for a public CLI package:
+This repo ships with a CI workflow that runs on Ubuntu, macOS, and Windows. It verifies typecheck, build, test compilation, test execution, `npm pack --dry-run`, and CLI help output.
 
-- `CI`
-  - Runs on pushes, pull requests, and manual dispatch
-  - Tests on Ubuntu, macOS, and Windows
-  - Verifies typecheck, build, test compilation, test execution, `npm pack --dry-run`, and CLI help output
-
-Before enabling automated publishing in the future, update the placeholder repository metadata in [package.json](./package.json):
-
-- `repository.url`
-- `homepage`
-- `bugs.url`
+Before enabling automated publishing, update the placeholder metadata in [package.json](./package.json): `repository.url`, `homepage`, `bugs.url`.
 
 ## Default Run Flow
 
-The CLI prefers checked-in starter files from `./defaults/`, and falls back to the project root if you override them locally.
+The CLI prefers checked-in starter files from `./defaults/` and falls back to the project root for local overrides.
 
-Preferred default path:
+| Purpose | Default path | Root fallback |
+|---|---|---|
+| Repo list | `defaults/repos.csv` / `.txt` / `.json` | `repos.csv` / `.txt` / `.json` |
+| Base dir | `defaults/base-dir.txt` | `base-dir.txt` |
+| Weights | `defaults/weights.json` | `weights.json` |
+| Repo weights | `defaults/repo_weights.json` | `repo_weights.json` |
+| Affiliations | `defaults/affiliations.json` | `affiliations.json` |
+| Low-hanging thresholds | `defaults/low_hanging_thresholds.json` | `low_hanging_thresholds.json` |
+| Label rules | `defaults/label_rules.json` | `label_rules.json` |
+| Code-jam thresholds | `defaults/code_jam_thresholds.json` | `code_jam_thresholds.json` |
 
-- `defaults/repos.csv` or `defaults/repos.txt` or `defaults/repos.json`
-- `defaults/base-dir.txt`
-- `defaults/weights.json`
-- `defaults/repo_weights.json`
-- `defaults/affiliations.json`
-- `defaults/low_hanging_thresholds.json`
-- `defaults/label_rules.json`
-- `defaults/code_jam_thresholds.json`
+The `defaults/` directory is checked in with fictional starter data. Root-level files are gitignored so real org data stays out of Git.
 
-Fallback root-level path:
-
-- `repos.csv` or `repos.txt` or `repos.json`
-- `base-dir.txt`
-- `weights.json`
-- `repo_weights.json`
-- `affiliations.json`
-- `low_hanging_thresholds.json`
-- `label_rules.json`
-- `code_jam_thresholds.json`
-
-That means the normal repeat-use flow can be as short as:
+Normal repeat-use flow:
 
 ```bash
 npm run build
 npm run scan
 ```
 
-Direct launcher from the repo:
+Direct launchers:
 
 - macOS / Linux: `./prioritize-prs`
 - Windows: `.\prioritize-prs.cmd`
 
-For development without rebuilding:
+Dev mode (no rebuild needed):
 
 ```bash
 npm run scan:dev
 ```
 
-The `defaults/` directory is intentionally checked in and safe to ship. Its contents are fictional starter data so the app has a stable default location out of the box.
-
-The shipped code-jam defaults are intentionally opinionated:
-
-- `Pick Next` aims to stay small but non-empty in a healthy queue.
-- High-confidence merge-ready quick wins can be promoted into `Pick Next` even when business metadata is sparse.
-- Routine automation or maintenance churn is still kept out of that top bucket.
-
-If you want to use your own real repo and config data without editing the checked-in defaults, put your own files in the project root. The root-level input files are gitignored so you can keep local run data out of Git.
-
 ## Usage
 
 ```bash
+# Explicit repos
+prioritize-prs --repo owner-example/repo-one --repo owner-example/repo-two --format md
+
+# From a file
 npm run start -- --repos-file ./examples/repos.txt --output-dir ./out --format all
-```
 
-Or after build:
-
-```bash
-npx prioritize-prs --repo owner-example/repo-one --repo owner-example/repo-two --format md
-```
-
-Discover repos from CODEOWNERS ownership in an org:
-
-```bash
+# CODEOWNERS discovery
 prioritize-prs --org exampleorg --codeowners-team platform-core --ownership-mode either --format md
-```
 
-Large-org discovery with safer scaling defaults:
+# Large-org discovery
+prioritize-prs --org exampleorg --codeowners-team platform-core --codeowners-mode search --only-with-open-prs --repo-limit 500 --format md
 
-```bash
-prioritize-prs --org exampleorg --codeowners-team platform-core --codeowners-mode auto --only-with-open-prs --repo-limit 500 --format md
-```
-
-CSV input resolved from a base-dir file:
-
-```bash
-npx prioritize-prs --base-dir-file ./examples/base-dir.txt --repos-csv repos.csv --repo-column repo --format md
+# CSV with base-dir
+prioritize-prs --base-dir-file ./examples/base-dir.txt --repos-csv repos.csv --repo-column repo --format md
 ```
 
 ### list-repos subcommand
 
-List repos owned by a CODEOWNERS team without running a full PR scan:
+List repos owned by a CODEOWNERS team without running a PR scan — useful for verifying coverage, building input lists, or auditing ownership:
 
 ```bash
-node dist/index.js list-repos --org exampleorg --codeowners-team platform-core
-```
-
-This is useful for verifying team ownership coverage, building input lists for other tools, or quickly auditing which repos a team owns.
-
-Options:
-
-- `--org <org>` (required)
-- `--codeowners-team <team>` (required)
-- `--codeowners-mode <auto|search|deep>` (default: `auto`)
-- `--include-archived`
-- `--only-with-open-prs`
-- `--repo-limit <number>`
-- `--format <text|json|csv>` (default: `text`)
-- `--output <file>` — write to file instead of stdout
-- `--verbose`
-
-Output formats:
-
-- `text` — one `owner/repo` per line, suitable for piping
-- `json` — array of `{ owner, repo, fullName }` objects
-- `csv` — header row plus `owner,repo,fullName` rows
-
-Examples:
-
-```bash
-# Plain list
+# Plain list (one owner/repo per line)
 node dist/index.js list-repos --org exampleorg --codeowners-team platform-core
 
-# JSON
+# JSON output
 node dist/index.js list-repos --org exampleorg --codeowners-team platform-core --format json
 
 # Save to file
 node dist/index.js list-repos --org exampleorg --codeowners-team platform-core --output repos.txt
 
-# Only repos that currently have open PRs
+# Only repos with open PRs
 node dist/index.js list-repos --org exampleorg --codeowners-team platform-core --only-with-open-prs
 ```
 
-The repo count is printed to stderr so it does not pollute piped output.
+The repo count is printed to stderr so it does not pollute piped output. See [CLI Options](#cli-options) for the full flag reference.
 
 ## Convenience Commands
 
-Cross-platform via npm:
-
-- `npm run build`
-- `npm run scan`
-- `npm run scan:dev`
-- `npm run clean`
-- `npm run clean:reports`
-- `npm run test:build`
-- `npm test`
-
-For macOS/Linux users who prefer `make`:
-
-- `make build`
-- `make test`
-- `make scan`
-- `make clean`
-
-## Install As A CLI
-
-If you want `prioritize-prs` available as a normal shell command instead of calling `node` yourself:
-
 ```bash
-npm install
 npm run build
-npm link
+npm run scan
+npm run scan:dev
+npm run clean
+npm run clean:reports
+npm run test:build
+npm test
 ```
 
-After that, you can run:
-
-```bash
-prioritize-prs
-```
-
-without prefixing it with `node`, `npx`, or another launcher.
+macOS/Linux `make` aliases: `make build`, `make test`, `make scan`, `make clean`.
 
 ## CLI Options
 
@@ -251,93 +161,51 @@ without prefixing it with `node`, `npx`, or another launcher.
 
 ### list-repos subcommand
 
-```bash
-node dist/index.js list-repos [options]
-```
-
 - `--org <org>` (required)
 - `--codeowners-team <team>` (required)
 - `--codeowners-mode <auto|search|deep>`
 - `--include-archived`
 - `--only-with-open-prs`
 - `--repo-limit <number>`
-- `--format text|json|csv`
+- `--format text|json|csv` (default: `text`)
 - `--output <file>`
 - `--verbose`
 
 ## Auth Behavior
 
-The tool validates credentials before scanning:
+1. Checks whether `gh` is available and runs a lightweight `gh auth status` check.
+2. If authenticated, uses the GitHub CLI token.
+3. Otherwise, falls back to `GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_PAT`.
+4. Exits non-zero with next steps if no valid auth is found.
 
-1. Checks whether `gh` is available.
-2. If available, runs a lightweight `gh auth status` check.
-3. If authenticated, uses the GitHub CLI auth token for API requests.
-4. Otherwise, tries `GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_PAT`.
-5. Exits non-zero with next steps if no valid auth path is available.
-
-The chosen mode is printed at runtime, for example:
-
-- `Using GitHub CLI authentication`
-- `Using token-based API authentication`
+The chosen mode is printed at runtime (`Using GitHub CLI authentication` / `Using token-based API authentication`).
 
 ## CODEOWNERS Discovery
 
-If you supply both `--org` and `--codeowners-team`, the CLI switches into repo-discovery mode.
+When `--org` and `--codeowners-team` are supplied together, the CLI switches into repo-discovery mode. It checks `.github/CODEOWNERS`, `CODEOWNERS`, and `docs/CODEOWNERS` in each repo, keeping only repos that mention the requested team.
 
-Discovery:
+**Discovery modes:**
 
-- It lists repos in the GitHub organization or uses GitHub code search, depending on `--codeowners-mode`.
-- It checks common CODEOWNERS paths:
-  - `.github/CODEOWNERS`
-  - `CODEOWNERS`
-  - `docs/CODEOWNERS`
-- It keeps only repos whose CODEOWNERS file mentions the requested team.
+- `auto` — uses `deep` for small orgs, `search` for larger ones
+- `search` — GitHub code search against `filename:CODEOWNERS`; preferred for large orgs
+- `deep` — lists repos and probes CODEOWNERS paths one by one; exact but expensive
 
-Ownership narrowing:
+**Ownership narrowing** (PR prioritization only):
 
-- `assigned`
-  - Keep PRs where the team is directly requested or a requested reviewer is a member of that team.
-- `touched`
-  - Keep PRs whose changed files match CODEOWNERS paths owned by that team.
-- `either`
-  - Keep PRs that match either assigned review ownership or touched owned paths.
-  - This is the default because it is the most useful broad triage mode.
-- `both`
-  - Keep only PRs that match both active assignment and touched owned paths.
+- `assigned` — PRs directly assigned to the team or a team member
+- `touched` — PRs touching files owned by the team in CODEOWNERS
+- `either` — union of both (default)
+- `both` — intersection; strictest option
 
-Team matching accepts either a plain slug like `platform-core` or a full reference like `@exampleorg/platform-core`.
+Team matching accepts a plain slug (`platform-core`) or a full reference (`@exampleorg/platform-core`).
 
-Discovery modes:
+### API demand
 
-- `auto`
-  - Uses `deep` scanning for small orgs or very small `--repo-limit` runs.
-  - Uses GitHub code search for larger orgs.
-- `search`
-  - Uses GitHub code search against `filename:CODEOWNERS`.
-  - This is the preferred option for large orgs.
-- `deep`
-  - Lists repos and probes common CODEOWNERS file paths repo by repo.
-  - This is exact but much more expensive.
+`search` mode: a handful of search requests (up to 10 pages × 100 results), then open-PR filtering and PR scanning on matched repos only.
 
-### API Demand Notes
+`deep` mode: ~1 request per 100 repos for listing, up to 3 content requests per repo for CODEOWNERS checks. A 3,000-repo org implies ~9,000 lookups before scanning starts — use `search` for large orgs.
 
-This mode is more API-intensive than supplying a fixed repo list.
-
-Approximate request shape in `search` mode:
-
-- A handful of search requests, up to 10 pages of 100 results
-- Optional open-PR filtering on matched repos only
-- Normal PR scan only for matched repos
-
-Approximate request shape in `deep` mode:
-
-- Org repo listing: about 1 request per 100 repos
-- CODEOWNERS checks: up to 3 content requests per repo
-- Normal PR scan only for matched repos
-
-At org sizes in the thousands, `deep` mode can become too expensive for routine use. For example, a 3,000-repo org can imply roughly 9,000 CODEOWNERS content lookups before PR scanning starts.
-
-For large orgs, the recommended pattern is:
+Recommended large-org pattern:
 
 ```bash
 prioritize-prs --org exampleorg --codeowners-team platform-core --codeowners-mode search --only-with-open-prs
@@ -347,69 +215,50 @@ Use `--repo-limit` for smoke tests and early tuning runs.
 
 ## Reports
 
-Generated reports include:
-
-- Ranked PR list with score breakdown
-- Recommendation buckets:
-  - Pick Next
-  - Quick Wins
-  - Important but Heavy
-  - Needs Clarification
-  - Probably Deprioritize for Code Jam
-- Repo summaries
-- Confidence and caveat section
+Generated reports include a ranked PR list with score breakdown, recommendation buckets (Pick Next / Quick Wins / Important but Heavy / Needs Clarification / Probably Deprioritize), repo summaries, and a confidence and caveat section.
 
 ## Configuration Files
 
-See the `examples/` directory for starter config files:
+Starter config files are in `examples/`: `weights.json`, `repo_weights.json`, `affiliations.json`, `low_hanging_thresholds.json`, `label_rules.json`, `code_jam_thresholds.json`, `repos.txt`, `repos.csv`, `base-dir.txt`. All inputs are fictional templates.
 
-- `weights.json`
-- `repo_weights.json`
-- `affiliations.json`
-- `low_hanging_thresholds.json`
-- `label_rules.json`
-- `code_jam_thresholds.json`
-- `repos.txt`
-- `repos.csv`
-- `base-dir.txt`
+`affiliations.json` supports two formats:
 
-All example inputs are fictional and intended as templates only.
-
-`affiliations.json` supports both formats.
-
-Legacy flat map:
+```json
+{ "maintainer_user_1": "internal-maintainer" }
+```
 
 ```json
 {
-  "maintainer_user_1": "internal-maintainer",
-  "external_contributor_1": "external"
+  "top_community_contributors": ["foo", "bar"],
+  "vip_orgs": "vip_org_1, vip_org_2",
+  "internal_staff": ["maintainer_user_1"]
 }
 ```
 
-Category-grouped map:
+If the same user appears in multiple categories, affiliations are joined into a single string.
 
-```json
-{
-  "top_community_contributors": ["foo", "bar", "baz"],
-  "vip_orgs": "vip_org_1, vip_org_2, vip_org_3",
-  "internal_staff": ["maintainer_user_1", "release_manager_1"]
-}
-```
-
-If the same user appears in multiple categories, the tool keeps all of them and joins them into a single affiliation string.
-
-The `defaults/` directory contains the real built-in fallback files that the CLI will use automatically when no explicit paths are provided.
-
-The repo also ships a checked-in [`.github/CODEOWNERS`](./.github/CODEOWNERS) file so the project can dogfood CODEOWNERS-based ownership and discovery behavior.
+The repo also ships a [`.github/CODEOWNERS`](./.github/CODEOWNERS) so the project can dogfood its own discovery behavior.
 
 ## Testing
 
-See [TESTING.md](./TESTING.md) for:
+See [TESTING.md](./TESTING.md) for automated test commands, smoke-test commands, and expected manual validation checks.
 
-- automated test commands
-- CLI smoke-test commands
-- CODEOWNERS discovery smoke-test guidance
-- expected manual validation checks
+## Notes On Scoring
+
+Default weighted formula:
+
+| Dimension | Weight |
+|---|---|
+| Business / Strategic Relevance | `0.34` |
+| Unblock Value | `0.22` |
+| Merge Readiness | `0.18` |
+| Effort / Review Cost | `0.12` |
+| Staleness Signal | `0.09` |
+| Community / Relationship Value | `0.05` |
+
+Signals are inferred from metadata and text patterns — treat output as a queue-shortening aid, not an automatic decision.
+
+The shipped defaults bias toward business relevance and unblock value over raw diff size, are conservative about low-hanging fruit, penalize maintenance churn, and still allow small merge-ready fixes to surface. The goal is a credible starting queue on a first run without much customization.
 
 ## Example Full Run
 
@@ -417,33 +266,7 @@ See [TESTING.md](./TESTING.md) for:
 node dist/index.js --base-dir-file ./examples/base-dir.txt --repos-csv repos.csv --repo-column repo --repo-business-weight ./examples/repo_weights.json --org-affiliation-map ./examples/affiliations.json --weights-file ./examples/weights.json --low-hanging-thresholds ./examples/low_hanging_thresholds.json --label-rules-file ./examples/label_rules.json --code-jam-thresholds-file ./examples/code_jam_thresholds.json --output-dir ./out --format all
 ```
 
-## Notes On Scoring
-
-Default weighted formula:
-
-- Business / Strategic Relevance: `0.34`
-- Unblock Value: `0.22`
-- Merge Readiness: `0.18`
-- Effort / Review Cost: `0.12`
-- Staleness Signal: `0.09`
-- Community / Relationship Value: `0.05`
-
-The implementation is heuristic by design. Signals such as stakeholder urgency, business importance, and dependency impact are inferred from metadata and text patterns, so humans should treat the output as a queue-shortening aid, not an automatic decision.
-
-## Default Philosophy
-
-The shipped defaults are intentionally tuned to be useful for a first run without much editing:
-
-- They bias toward business relevance and unblock value over raw "small diff" convenience.
-- They are conservative about what counts as low-hanging fruit, so the report does not flood with false-positive quick wins.
-- They penalize maintenance churn and automation work enough that bot-style PRs should not dominate the top of the queue.
-- They still allow small compatibility and platform-support fixes to surface when they are merge-ready and plausibly valuable.
-
-If a new user copies the example JSON files into the project root and runs the tool without much customization, the result should be a credible starting queue rather than a generic "smallest PRs first" list.
-
 ## Sample Output
-
-Example artifacts are included here:
 
 - [sample markdown](./examples/sample-output/pr-priorities.md)
 - [sample json](./examples/sample-output/pr-priorities.json)
